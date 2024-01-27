@@ -2,8 +2,7 @@
 #include <random>
 #include <list>
 #include <map>
-#include <chrono>
-#include <thread>
+#include <limits>
 const int BLACKJACK = 21;
 class Card {
 	private:
@@ -102,24 +101,6 @@ class Hand {
 		}
 		void setWinStatus(bool status) {
 			this->winStatus = status;
-		}
-		bool isEqual(Hand otherHand) {
-			if (this->hand.size() != otherHand.getHand().size())
-				return false;
-			int cardPosition = 0;
-			for (auto card : this->hand) {
-				int i = 0;
-				for (auto otherCard : otherHand.getHand()) {
-					if (i != cardPosition) {
-						i++;
-						continue;
-					}
-					if (!card.isEqual(otherCard))
-						return false;
-				}
-				cardPosition++;
-			}
-			return true;
 		}
 };
 
@@ -280,7 +261,6 @@ void playTurn(Hand& hand, Player& player, int count) {
 	} while (endTurn != true);
 }
 char displayGame(Dealer dealer, Player players[], int size) {
-	int option;
 	std::cout << "Dealer's hand: ";
 	dealer.firstShowHand();
 	std::cout << "- - - - - - - - - - - - - - - - - - - - - - - - - -" << std::endl;
@@ -303,14 +283,20 @@ char displayGame(Dealer dealer, Player players[], int size) {
 		for (auto& hand : players[i].getHands()) { // Iterates through all the player's hands
 			bool endTurn = false;
 			playTurn(hand, players[i], i);
-			if (hand.count() == BLACKJACK && dealer.getHand().count() != BLACKJACK) // Player 21 against any dealer's hand except for a blackjack will result in a player win
+			if (dealer.getBustedStatus())
 				hand.setWinStatus(true);
-			if (hand.count() < dealer.getHand().count() && !dealer.getBustedStatus()) // Player hand lower than dealer's hand without busting will result in a player loss
-				hand.setWinStatus(false);
-			if (hand.count() > dealer.getHand().count() && hand.count() <= BLACKJACK) // Player hand higher than dealer's hand without busting will result in a player win
-				hand.setWinStatus(true);
-			// Player hand busting is not taken into account because winStatus is already false and it doesn't matter what the dealer has
-			std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::seconds(5)); // Adds a 5 second delay
+			else {
+				if (hand.count() == BLACKJACK && dealer.getHand().count() != BLACKJACK) // Player 21 against any dealer's hand except for a blackjack will result in a player win
+					hand.setWinStatus(true);
+				if (hand.count() < dealer.getHand().count() && !dealer.getBustedStatus()) // Player hand lower than dealer's hand without busting will result in a player loss
+					hand.setWinStatus(false);
+				if (hand.count() > dealer.getHand().count() && hand.count() <= BLACKJACK) // Player hand higher than dealer's hand without busting will result in a player win
+					hand.setWinStatus(true);
+				// Player hand busting is not taken into account because winStatus is already false and it doesn't matter what the dealer has
+			}
+			std::cout << "Press any key to continue... ";
+			std::cin.get();
+			std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 			clearTerminal();
 		}
 	}
@@ -327,24 +313,61 @@ char displayGame(Dealer dealer, Player players[], int size) {
 				std::cout << "-> You have lost this hand!" << std::endl;
 		}
 	}
-	return 'Y';
+	std::cout << "- - - - - - - - - - - - - - - - - - - - - - - - - -" << std::endl;
+	char exitChar;
+	do {
+		std::cout << "Do you want to keep playing? (y/n): ";
+		std::cin >> exitChar;
+		if (std::cin.fail() || (toupper(exitChar) != 'Y' && toupper(exitChar) != 'N')) {
+			std::cout << "That is not a valid input!" << std::endl;
+			std::cin.clear();
+			std::cin.ignore();
+		}
+	} while (std::cin.fail() || (toupper(exitChar) != 'Y' && toupper(exitChar) != 'N'));
+	return toupper(exitChar);
 }
 int main() {
-	switch(mainMenu()) {
-		case 1:
-		{
-			int players = gameMenu();
-			Player allPlayers[players];
-			Dealer dealer;
-			do {
+	bool keepPlaying = true;
+	do {
+		clearTerminal();
+		switch(mainMenu()) {
+			case 1:
+			{
+				int players = gameMenu();
+				Player allPlayers[players];
+				do {
+					for (int i = 0; i < players; i++) // Creates new players for each iteration
+						allPlayers[i] = Player();
+					clearTerminal();
+				} while (displayGame(Dealer(), allPlayers, players) == 'Y');
+				break;
+			}
+			case 2:
+				std::cout << "- - - - - - - - - - - - - - - - - - - - - - - - - -" << std::endl;
+				std::cout << "You get dealt a hand with 2 cards." << std::endl;
+				std::cout << "Dealer has a hand with only one card showing, the second is shown just after every player has played their turn." << std::endl;
+				std::cout << "You have to get as close as you can to 21, if you exceed 21 or the dealer has a higher count than you, you lose." << std::endl;
+				std::cout << "Aces can count as 1 or 11 depending on if your count exceeds 21 while counting it as 11 or not, faces count as 10 and every other card counts as its numerical value." << std::endl;
+				std::cout << "You are given 4 options for every hand you have:" << std::endl;
+				std::cout << "\t1. Hit: You get another random card added to your current hand." << std::endl;
+				std::cout << "\t2. Stand: No changes will be made to your current hand." << std::endl;
+				std::cout << "\t3. Double Down: Your 'bet' is doubled, and you get only one extra card." << std::endl;
+				std::cout << "\t3. Split: If you have a pair as your initial cards, you can split your actual hand into two new ones using one card of the pair as first card of each new hand, then you can play your hands again independently." << std::endl;
+				std::cout << "Dealer has to hit until he reaches 17 or higher." << std::endl;
+				std::cout << "Drawing with the dealer will count as a player loss." << std::endl;
+				std::cout << "Have fun getting those BLACKJACKS (21)!" << std::endl;
+				std::cout << "P.S: You can't card count in this version but I am thinking of doing a version in the future to do so!" << std::endl;
+				std::cout << "Press any key to continue... ";
+				std::cin.get();
+				std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Ignores all input until a newline is reached
 				clearTerminal();
-			} while (toupper(displayGame(dealer, allPlayers, players)) != 'Y');
-			break;
+				break;
+			case 3:
+				std::cout << "- - - - - - - - - - - - - - - - - - - - - - - - - -" << std::endl;
+				std::cout << "Thank you for playing!" << std::endl << "But remember... the house always wins." << std::endl;
+				keepPlaying = false;
+				break;
 		}
-		case 2:
-			break;
-		case 3:
-			break;
-	}
+	} while (keepPlaying);
 	return 0;
 }
