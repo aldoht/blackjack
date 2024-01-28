@@ -286,13 +286,11 @@ char displayGame(Dealer dealer, Player players[], int size) {
 			if (dealer.getBustedStatus())
 				hand.setWinStatus(true);
 			else {
-				if (hand.count() == BLACKJACK && dealer.getHand().count() != BLACKJACK) // Player 21 against any dealer's hand except for a blackjack will result in a player win
+				if ((hand.count() == BLACKJACK && dealer.getHand().count() != BLACKJACK) || (hand.count() > dealer.getHand().count() && hand.count() <= BLACKJACK))
 					hand.setWinStatus(true);
-				if (hand.count() < dealer.getHand().count() && !dealer.getBustedStatus()) // Player hand lower than dealer's hand without busting will result in a player loss
-					hand.setWinStatus(false);
-				if (hand.count() > dealer.getHand().count() && hand.count() <= BLACKJACK) // Player hand higher than dealer's hand without busting will result in a player win
-					hand.setWinStatus(true);
-				// Player hand busting is not taken into account because winStatus is already false and it doesn't matter what the dealer has
+				// Player 21 against any dealer's hand except for a blackjack will result in a player win
+				// Player hand higher than dealer's hand without busting will result in a player win
+				// Any other case is not taken into account because winStatus is already false and any other case left involves the player losing its hand
 			}
 			std::cout << "Press any key to continue... ";
 			std::cin.get();
