@@ -1,4 +1,6 @@
 # Useful Information
+## How to play
+Just download the file and compile it on your system, then run it as any other C++ program.
 ## Displaying UTF-8 characters
 ### For Linux:
 It should work correctly and no fixes should have to be made to display UTF-8 characters (suits).
